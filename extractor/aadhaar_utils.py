@@ -3,6 +3,11 @@ import re
 import cv2
 import numpy as np
 import pytesseract
+
+# Explicitly set Tesseract path (works in Docker slim images)
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+
+import pytesseract
 import datetime
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
