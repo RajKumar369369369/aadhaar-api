@@ -1,10 +1,6 @@
-# Use a lightweight Python base image
 FROM python:3.10-slim
 
-# Install system dependencies including Tesseract
-FROM python:3.10-slim
-
-# Install system dependencies + Tesseract
+# Install system dependencies + Tesseract OCR
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     libtesseract-dev \
@@ -14,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Set tessdata path
+# Set tessdata path (important for pytesseract)
 ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
 
 WORKDIR /app
