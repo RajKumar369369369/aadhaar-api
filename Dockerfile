@@ -2,6 +2,9 @@
 FROM python:3.10-slim
 
 # Install system dependencies including Tesseract
+FROM python:3.10-slim
+
+# Install system dependencies + Tesseract
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     libtesseract-dev \
@@ -11,18 +14,16 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Set tessdata path
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
+
 WORKDIR /app
 
-# Copy and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
 COPY . .
 
-# Expose port for Render
 EXPOSE 8000
 
-# Start Django with Gunicorn
 CMD ["gunicorn", "aadhaar_api.wsgi:application", "--bind", "0.0.0.0:8000"]

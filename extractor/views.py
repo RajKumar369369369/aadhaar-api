@@ -4,6 +4,15 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from .aadhaar_utils import extract_text, extract_aadhaar_details
+from django.http import JsonResponse
+import pytesseract
+
+def check_tesseract(request):
+    try:
+        version = pytesseract.get_tesseract_version()
+        return JsonResponse({"tesseract_version": str(version)})
+    except Exception as e:
+        return JsonResponse({"error": str(e)})
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
