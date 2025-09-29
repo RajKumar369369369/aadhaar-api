@@ -1,6 +1,6 @@
 FROM python:3.10-slim
 
-# Install system dependencies + Tesseract OCR
+# Install system dependencies + Tesseract OCR + OpenCV libs
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     libtesseract-dev \
@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     pkg-config \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set tessdata path (important for pytesseract)
