@@ -7,18 +7,28 @@ import datetime
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
-
-# Explicitly set Tesseract path (needed in Docker slim images)
-#pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+import shutil
 import platform
-import pytesseract
 
-if platform.system() == "Windows":
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# -----------------------
+# Robust Tesseract Path Detection
+# -----------------------
+tesseract_path = shutil.which("tesseract")
+
+if tesseract_path:
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
+elif platform.system() == "Windows":
+    win_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if os.path.exists(win_path):
+        pytesseract.pytesseract.tesseract_cmd = win_path
+    else:
+        raise EnvironmentError("Tesseract not found at default Windows path")
 else:
-    # Linux (Render/Docker)
-    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
-
+    linux_path = "/usr/bin/tesseract"
+    if os.path.exists(linux_path):
+        pytesseract.pytesseract.tesseract_cmd = linux_path
+    else:
+        raise EnvironmentError("Tesseract not found in PATH or default location")
 
 
 # -----------------------
@@ -29,7 +39,7 @@ def preprocess_aadhaar(img):
     """
     Preprocess Aadhaar image (OpenCV array) for better OCR results.
     """
-    if isinstance(img, str):  # in case path is passed by mistake
+    if isinstance(img, str):  # if file path passed
         img = cv2.imread(img)
 
     # Convert to gray

@@ -12,16 +12,24 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
+# Verify tesseract installation (this will print in build logs)
+RUN which tesseract && tesseract --version
+
 # Set tessdata path (important for pytesseract)
 ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
 
+# Set work directory
 WORKDIR /app
 
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy project files
 COPY . .
 
+# Expose Django/Gunicorn port
 EXPOSE 8000
 
+# Run with Gunicorn (production server)
 CMD ["gunicorn", "aadhaar_api.wsgi:application", "--bind", "0.0.0.0:8000"]
