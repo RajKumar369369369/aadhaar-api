@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import extract_aadhaar, check_tesseract
+from .views import AadhaarProcessor,extract_aadhaar, check_tesseract
 
 urlpatterns = [
     path("extract-aadhaar/", extract_aadhaar, name="extract_aadhaar"),

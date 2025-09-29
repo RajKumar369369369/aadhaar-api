@@ -3,24 +3,34 @@ import re
 import cv2
 import numpy as np
 import pytesseract
-
-# Explicitly set Tesseract path (works in Docker slim images)
-pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
-
-import pytesseract
 import datetime
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
 
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# Explicitly set Tesseract path (needed in Docker slim images)
+#pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+import platform
+import pytesseract
+
+if platform.system() == "Windows":
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+else:
+    # Linux (Render/Docker)
+    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+
+
 
 # -----------------------
 # Preprocessing Functions
 # -----------------------
 
-def preprocess_aadhaar(img_path):
-    img = cv2.imread(img_path)
+def preprocess_aadhaar(img):
+    """
+    Preprocess Aadhaar image (OpenCV array) for better OCR results.
+    """
+    if isinstance(img, str):  # in case path is passed by mistake
+        img = cv2.imread(img)
 
     # Convert to gray
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -48,16 +58,25 @@ def preprocess_aadhaar(img_path):
     return thresh
 
 
-def extract_text(img_path):
-    processed = preprocess_aadhaar(img_path)
+def extract_text(img):
+    """
+    Extract raw text from Aadhaar image (OpenCV array or file path).
+    """
+    if isinstance(img, str):  # file path
+        img = cv2.imread(img)
+
+    processed = preprocess_aadhaar(img)
     config = r'--oem 3 --psm 11 -l eng'
     text = pytesseract.image_to_string(processed, config=config)
     return text
 
 
 def extract_aadhaar_details(raw_text: str):
+    """
+    Extract structured Aadhaar details from OCR raw text.
+    """
     lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
-    
+
     details = {
         "Name": "",
         "DOB": "",
@@ -65,28 +84,29 @@ def extract_aadhaar_details(raw_text: str):
         "Address": "",
         "Mobile": ""
     }
-    
+
     full_text = " ".join(lines)
-    
+
     # Aadhaar number
     aadhaar_match = re.search(r"\b\d{4}\s\d{4}\s\d{4}\b", full_text)
     if aadhaar_match:
         details["AadhaarNo"] = aadhaar_match.group(0)
-    
+
     # DOB
     dob_match = re.search(r"DOB[:\s]+(\d{2}[/-]\d{2}[/-]\d{4}|\d{4})", full_text, re.IGNORECASE)
     if dob_match:
         dob_val = dob_match.group(1)
         if len(dob_val) == 4:  # Only year
-            dob_val = f"01-01-{dob_val}"
+            dob_val = f"01/01/{dob_val}"
+        dob_val = dob_val.replace("-", "/")
         details["DOB"] = dob_val
-    
+
     # Mobile
     number_match = re.search(r"\b\d{10}\b", full_text)
     if number_match:
         details["Mobile"] = number_match.group(0)
 
-    # Find Name & Address
+    # Name & Address
     name = None
     address_lines = []
     for i, line in enumerate(lines):
@@ -100,12 +120,12 @@ def extract_aadhaar_details(raw_text: str):
                 address_lines.append(lines[j])
                 j += 1
             break
-    
+
     if name:
         details["Name"] = name
     if address_lines:
         details["Address"] = ", ".join(address_lines)
-    
+
     return details
 
 
@@ -127,17 +147,14 @@ class AadhaarProcessor:
         """Wrapper for detail parsing."""
         return extract_aadhaar_details(text)
 
-
     def calculate_age(self, dob_str):
         """Calculate age from DOB."""
         try:
-            # Accepts "dd/mm/yyyy" format
             dob = datetime.datetime.strptime(dob_str, "%d/%m/%Y")
             today = datetime.date.today()
             age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
             return age
-        except Exception as e:
-            print("Error:", e)
+        except Exception:
             return ""
 
     def process_pair(self, aadhaar_file, person_file):
