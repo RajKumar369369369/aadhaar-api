@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Verify tesseract installation (this will print in build logs)
+# Verify tesseract installation (will show in build logs)
 RUN which tesseract && tesseract --version
 
 # Set tessdata path (important for pytesseract)
@@ -31,5 +31,10 @@ COPY . .
 # Expose Django/Gunicorn port
 EXPOSE 8000
 
-# Run with Gunicorn (production server)
-CMD ["gunicorn", "aadhaar_api.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Run with Gunicorn (optimized for Render free tier)
+# 1 worker (saves memory), 2 threads, longer timeout
+CMD ["gunicorn", "aadhaar_api.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "1", \
+     "--threads", "2", \
+     "--timeout", "120"]

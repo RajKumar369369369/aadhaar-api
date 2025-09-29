@@ -38,6 +38,7 @@ else:
 def preprocess_aadhaar(img):
     """
     Preprocess Aadhaar image (OpenCV array) for better OCR results.
+    Optimized for low memory (Render free tier).
     """
     if isinstance(img, str):  # if file path passed
         img = cv2.imread(img)
@@ -45,13 +46,13 @@ def preprocess_aadhaar(img):
     # Convert to gray
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Upscale for better recognition
-    gray = cv2.resize(gray, None, fx=2.5, fy=2.5, interpolation=cv2.INTER_CUBIC)
+    # Upscale slightly (not too high)
+    gray = cv2.resize(gray, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
 
-    # Denoise
-    gray = cv2.bilateralFilter(gray, 11, 17, 17)
+    # Light denoising (Gaussian instead of heavy bilateral)
+    gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    # Sharpening
+    # Sharpening (light kernel)
     kernel = np.array([[0, -1, 0],
                        [-1, 5, -1],
                        [0, -1, 0]])
@@ -76,7 +77,10 @@ def extract_text(img):
         img = cv2.imread(img)
 
     processed = preprocess_aadhaar(img)
-    config = r'--oem 3 --psm 11 -l eng'
+
+    # Memory-friendly config
+    config = r'--oem 1 --psm 6 -l eng'
+
     text = pytesseract.image_to_string(processed, config=config)
     return text
 
